@@ -1,16 +1,21 @@
 # Stage 1: Build the application
-FROM node:10-alpine AS node
+FROM node:14-alpine AS node  
 WORKDIR /app
 
 # Copy package.json and install dependencies
-COPY package.json /app/
-RUN npm install
+COPY package.json package-lock.json /app/
+RUN npm install --legacy-peer-deps  
+
+# Ensure the correct TypeScript version
+RUN npm install typescript@3.2.4 --save-dev
 
 # Copy the entire application
 COPY ./ /app/
 
 # Set build target (e.g., production or deployment)
 ARG TARGET=ng-deploy
+
+# Run the build
 RUN npm run ${TARGET}
 
 # Stage 2: Serve the application with Nginx
