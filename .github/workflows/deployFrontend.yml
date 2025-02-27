@@ -36,7 +36,7 @@ jobs:
           tags: dewtks/234-deploylab-frontend:latest
 
       - name: Copy file via SSH
-        uses: appleboy/scp-action@v1.7.1
+        uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.HOST_SERVER }}
           username: ${{ secrets.HOST_USER_NAME }}
