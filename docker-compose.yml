@@ -1,0 +1,8 @@
+version: '3.3'
+
+services:
+  frontend:
+    image: dewtks/234-deploylab-frontend:latest
+    pull_policy: always
+    ports:
+      - "8086:80"
