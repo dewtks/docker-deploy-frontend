@@ -8,8 +8,15 @@ on:
 jobs:
   docker:
     runs-on: ubuntu-latest
+    env:
+      DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
+      DOCKER_HUB_TOKEN: ${{ secrets.DOCKER_HUB_TOKEN }}
+      HOST_SERVER: ${{ secrets.HOST_SERVER }}
+      HOST_USER_NAME: ${{ secrets.HOST_USER_NAME }}
+      HOST_SSH_PRIVATE_KEY: ${{ secrets.HOST_SSH_PRIVATE_KEY }}
+    
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up QEMU
@@ -21,26 +28,22 @@ jobs:
       - name: Login to DockerHub
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKER_HUB_USERNAME }}
-          password: ${{ secrets.DOCKER_HUB_TOKEN }}
+          username: ${{ env.DOCKER_HUB_USERNAME }}
+          password: ${{ env.DOCKER_HUB_TOKEN }}
 
-      - name: Prepare the docker-compose run
-        run: |
-          ls -1
-
-      - name: Build and push
+      - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:
           context: .
           push: true
           tags: dewtks/234-deploylab-frontend:latest
 
-      - name: Copy file via SSH
+      - name: Copy docker-compose file to server
         uses: appleboy/scp-action@v0.1.7
         with:
-          host: ${{ secrets.HOST_SERVER }}
-          username: ${{ secrets.HOST_USER_NAME }}
-          key: ${{ secrets.HOST_SSH_PRIVATE_KEY }}
+          host: ${{ env.HOST_SERVER }}
+          username: ${{ env.HOST_USER_NAME }}
+          key: ${{ env.HOST_SSH_PRIVATE_KEY }}
           port: 22
           source: "docker-compose.yml"
           target: "/home/ubuntu/frontend"
@@ -48,14 +51,14 @@ jobs:
       - name: Deploy with Docker Compose
         uses: appleboy/ssh-action@v1.2.1
         with:
-          host: ${{ secrets.HOST_SERVER }}
-          username: ${{ secrets.HOST_USER_NAME }}
-          key: ${{ secrets.HOST_SSH_PRIVATE_KEY }}
+          host: ${{ env.HOST_SERVER }}
+          username: ${{ env.HOST_USER_NAME }}
+          key: ${{ env.HOST_SSH_PRIVATE_KEY }}
           port: 22
           script: |
             cd /home/ubuntu/frontend
-            echo ${{ secrets.DOCKER_HUB_TOKEN }} | docker login --username ${{ secrets.DOCKER_HUB_USERNAME }} --password-stdin
-            docker compose down
+            echo ${{ env.DOCKER_HUB_TOKEN }} | docker login --username ${{ env.DOCKER_HUB_USERNAME }} --password-stdin
+            docker compose down || echo "No running containers"
             docker compose pull
-            docker compose up -d
-            rm -rf /home/ubuntu/frontend
+            docker compose up -d --remove-orphans
+            docker system prune -f  # Cleanup old containers & images
